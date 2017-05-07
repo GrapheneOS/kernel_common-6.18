@@ -22,7 +22,7 @@ struct callchain_cpus_entries {
 
 int sysctl_perf_event_max_stack __read_mostly = PERF_MAX_STACK_DEPTH;
 int sysctl_perf_event_max_contexts_per_stack __read_mostly = PERF_MAX_CONTEXTS_PER_STACK;
-static const int six_hundred_forty_kb = 640 * 1024;
+static const int six_hundred_forty_kb __read_only = 640 * 1024;
 
 static inline size_t perf_callchain_entry__sizeof(void)
 {
