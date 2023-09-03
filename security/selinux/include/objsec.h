@@ -42,6 +42,7 @@ struct cred_security_struct {
 	u32 create_sid; /* fscreate SID */
 	u32 keycreate_sid; /* keycreate SID */
 	u32 sockcreate_sid; /* fscreate SID */
+	u64 flags;
 } __randomize_layout;
 
 struct task_security_struct {
@@ -62,6 +63,8 @@ static inline bool task_avdcache_permnoaudit(struct task_security_struct *tsec,
 		sid == tsec->avdcache.sid &&
 		tsec->avdcache.seqno == avc_policy_seqno());
 }
+
+#define TSEC_ALL_FLAGS (0)
 
 enum label_initialized {
 	LABEL_INVALID, /* invalid or not initialized */
