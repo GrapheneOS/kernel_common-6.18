@@ -91,12 +91,19 @@ extern int selinux_enabled_boot;
 
 struct selinux_policy;
 
+struct context_types {
+	u32 webview_zygote;
+	u32 zygote;
+};
+
 struct selinux_state {
 #ifdef CONFIG_SECURITY_SELINUX_DEVELOP
 	bool enforcing;
 #endif
 	bool initialized;
 	bool policycap[__POLICYDB_CAP_MAX];
+
+	struct context_types types;
 
 	struct page *status_page;
 	struct mutex status_lock;
