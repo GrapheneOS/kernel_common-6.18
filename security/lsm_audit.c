@@ -411,7 +411,7 @@ void audit_log_lsm_data(struct audit_buffer *ab,
  * @ab : the audit buffer
  * @a : common audit data
  */
-static void dump_common_audit_data(struct audit_buffer *ab,
+void dump_common_audit_data(struct audit_buffer *ab,
 				   const struct common_audit_data *a)
 {
 	char comm[sizeof(current->comm)];
