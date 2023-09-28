@@ -72,6 +72,7 @@ static inline bool task_avdcache_permnoaudit(struct task_security_struct *tsec,
 #define TSEC_FLAG_DENY_EXECUTE_ASHMEM_DEVICE (1 << 5)
 #define TSEC_FLAG_DENY_EXECUTE_ASHMEM_LIBCUTILS_DEVICE (1 << 6)
 #define TSEC_FLAG_DENY_EXECUTE_PRIVAPP_DATA_FILE (1 << 7)
+#define TSEC_FLAG_DENY_PROCESS_PTRACE (1 << 8)
 
 #define TSEC_ALL_DENY_EXECUTE_FLAGS (\
 	TSEC_FLAG_DENY_EXECUTE_APPDOMAIN_TMPFS | \
@@ -86,6 +87,7 @@ static inline bool task_avdcache_permnoaudit(struct task_security_struct *tsec,
 	TSEC_FLAG_DENY_EXECMEM | \
 	TSEC_FLAG_DENY_EXECMOD | \
 	TSEC_ALL_DENY_EXECUTE_FLAGS | \
+    TSEC_FLAG_DENY_PROCESS_PTRACE | \
 0)
 
 enum label_initialized {
