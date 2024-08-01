@@ -1788,6 +1788,10 @@ config ARCH_VMLINUX_NEEDS_RELOCS
 config HAVE_GENERIC_TIF_BITS
        bool
 
+config MICRODROID
+	bool "Enables support for Microdroid VM"
+	default n
+
 source "kernel/gcov/Kconfig"
 
 source "scripts/gcc-plugins/Kconfig"
