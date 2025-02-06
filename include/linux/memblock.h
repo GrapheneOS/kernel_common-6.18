@@ -507,6 +507,8 @@ void memblock_dump_all(void);
  */
 void memblock_set_current_limit(phys_addr_t limit);
 
+extern void early_memzero(phys_addr_t start, phys_addr_t end);
+
 extern void __init_memblock memblock_memsize_record(const char *name,
 		phys_addr_t base, phys_addr_t size, bool nomap, bool reusable);
 extern void __init memblock_memsize_detect_hole(void);
