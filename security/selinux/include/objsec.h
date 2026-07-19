@@ -74,6 +74,7 @@ static inline bool task_avdcache_permnoaudit(struct task_security_struct *tsec,
 #define TSEC_FLAG_DENY_EXECUTE_PRIVAPP_DATA_FILE (1 << 7)
 #define TSEC_FLAG_DENY_PROCESS_PTRACE (1 << 8)
 #define TSEC_FLAG_OVERRIDE_PREV_SELINUX_CTX_TO_INIT (1 << 9)
+#define TSEC_FLAG_DISABLE_HARDENED_MALLOC (1 << 10)
 
 #define TSEC_ALL_DENY_EXECUTE_FLAGS (\
 	TSEC_FLAG_DENY_EXECUTE_APPDOMAIN_TMPFS | \
@@ -90,6 +91,7 @@ static inline bool task_avdcache_permnoaudit(struct task_security_struct *tsec,
 	TSEC_ALL_DENY_EXECUTE_FLAGS | \
 	TSEC_FLAG_DENY_PROCESS_PTRACE | \
 	TSEC_FLAG_OVERRIDE_PREV_SELINUX_CTX_TO_INIT | \
+	TSEC_FLAG_DISABLE_HARDENED_MALLOC | \
 0)
 
 enum label_initialized {
