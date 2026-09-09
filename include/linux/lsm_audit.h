@@ -129,7 +129,7 @@ int ipv6_skb_to_auditdata(struct sk_buff *skb,
 #endif /* IS_ENABLED(CONFIG_IPV6) */
 
 void dump_common_audit_data(struct audit_buffer *ab,
-				   struct common_audit_data *a);
+				   const struct common_audit_data *a);
 
 void common_lsm_audit(struct common_audit_data *a,
 	void (*pre_audit)(struct audit_buffer *, void *),
