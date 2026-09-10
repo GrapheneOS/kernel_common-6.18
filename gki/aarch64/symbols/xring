@@ -1801,7 +1801,6 @@
   register_inetaddr_notifier
   register_kprobe
   register_kretprobe
-  register_memory_notifier
   register_netdev
   register_netdevice
   register_netdevice_notifier
@@ -2836,7 +2835,6 @@
   unregister_inetaddr_notifier
   unregister_kprobe
   unregister_kretprobe
-  unregister_memory_notifier
   unregister_netdev
   unregister_netdevice_notifier
   unregister_netdevice_queue
