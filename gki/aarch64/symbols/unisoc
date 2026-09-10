@@ -3119,7 +3119,6 @@
   unregister_blkdev
   wake_up_bit
   wait_for_completion_io_timeout
-  unregister_memory_notifier
   zstd_cctx_workspace_bound
   zstd_compress_cctx
   zstd_compress_using_cdict
