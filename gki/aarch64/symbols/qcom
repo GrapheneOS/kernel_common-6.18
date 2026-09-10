@@ -4,7 +4,6 @@
   activate_task
   add_cpu
   add_device_randomness
-  add_memory
   addrconf_add_linklocal
   addrconf_prefix_rcv_add_addr
   add_taint
@@ -324,7 +323,6 @@
   _copy_to_iter
   __cpu_active_mask
   cpu_bit_bitmap
-  alloc_swapdev_block
   cpu_busy_with_softirqs
   __cpu_dying_mask
   cpufreq_cpu_get
@@ -1864,7 +1862,6 @@
   mem_dump_obj
   memdup_user
   memmove
-  memory_block_size_bytes
   memory_read_from_buffer
   memparse
   mempool_alloc_noprof
@@ -2097,7 +2094,6 @@
   of_find_node_opts_by_path
   of_find_node_with_property
   of_find_property
-  offline_and_remove_memory
   of_fwnode_ops
   of_genpd_add_provider_onecell
   of_genpd_add_provider_simple
@@ -2617,7 +2613,6 @@
   register_inetaddr_notifier
   register_kprobe
   register_kretprobe
-  register_memory_notifier
   register_module_notifier
   register_netdev
   register_netdevice
@@ -2686,7 +2681,6 @@
   release_sock
   remap_pfn_range
   remove_cpu
-  remove_memory
   remove_proc_entry
   remove_resource
   remove_wait_queue
@@ -2861,7 +2855,6 @@
   sdio_unregister_driver
   sdio_writeb
   sdio_writesb
-  sections_per_block
   security_release_secctx
   security_secid_to_secctx
   security_sk_classify_flow
@@ -3271,10 +3264,6 @@
   timer_shutdown_sync
   timer_unstable_counter_workaround
   timespec64_to_jiffies
-  tipc_dump_done
-  tipc_dump_start
-  tipc_nl_sk_walk
-  tipc_sk_fill_sock_diag
   topology_clear_scale_freq_source
   topology_update_done
   _totalram_pages
@@ -3293,7 +3282,6 @@
   trace_get_event_file
   trace_handle_return
   __traceiter_android_rvh_account_irq
-  snapshot_get_image_size
   __traceiter_android_rvh_before_do_sched_yield
   __traceiter_android_rvh_bitmap_find_best_next_area
   __traceiter_android_rvh_build_perf_domains
