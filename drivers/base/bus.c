@@ -596,10 +596,10 @@ void bus_probe_device(struct device *dev)
 
 void bus_probe_device_deferred(struct device *dev)
 {
-	if (dev->parent && dev->bus->need_parent_lock)
+	if (dev->type && dev->type->need_parent_lock)
 		device_lock(dev->parent);
 	__bus_probe_device(dev);
-	if (dev->parent && dev->bus->need_parent_lock)
+	if (dev->type && dev->type->need_parent_lock)
 		device_unlock(dev->parent);
 }
 
@@ -825,10 +825,10 @@ static int __must_check bus_rescan_devices_helper(struct device *dev,
 	int ret = 0;
 
 	if (!dev->driver) {
-		if (dev->parent && dev->bus->need_parent_lock)
+		if (dev->type && dev->type->need_parent_lock)
 			device_lock(dev->parent);
 		ret = device_attach(dev);
-		if (dev->parent && dev->bus->need_parent_lock)
+		if (dev->type && dev->type->need_parent_lock)
 			device_unlock(dev->parent);
 	}
 	return ret < 0 ? ret : 0;
