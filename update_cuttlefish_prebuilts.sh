@@ -29,6 +29,8 @@ GKI_MODULES_PATH="${PREBUILT_PATH}/${KERNEL_VERSION}/${ARCH}"
 VIRT_MODULES_PATH="${PREBUILT_PATH}/common-modules/virtual-device/${KERNEL_VERSION}/${ARCH//_/-}"
 
 mkdir -p "${GKI_MODULES_PATH}" "${VIRT_MODULES_PATH}"
+# Do not retain modules from a different build or signing key.
+rm -f -- "${GKI_MODULES_PATH}"/*.ko "${VIRT_MODULES_PATH}"/*.ko
 cp "$@" -- "${common_modules[@]}" "${GKI_MODULES_PATH}/"
 cp "$@" -- "${virt_modules[@]}" "${VIRT_MODULES_PATH}/"
 cp "$@" -- "common_dist/${kernel_image}" "${GKI_MODULES_PATH}/kernel-${KERNEL_VERSION}"
