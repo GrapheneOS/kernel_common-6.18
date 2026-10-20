@@ -5,9 +5,11 @@ shopt -s nullglob
 
 KERNEL_VERSION="6.18"
 
+kernel_subdir=
 case ${ARCH:-} in
-        arm64) kernel_image=Image ;;
-        x86_64) kernel_image=bzImage ;;
+        arm64) kernel_image=Image; kernel_arch=arm64 ;;
+        arm64_16k) kernel_image=Image; kernel_arch=arm64; kernel_subdir=/16k ;;
+        x86_64) kernel_image=bzImage; kernel_arch=x86_64 ;;
         *) echo "ARCH is undefined or unknown" >&2; exit 1 ;;
 esac
 
@@ -25,8 +27,8 @@ test -s "common_dist/${kernel_image}"
 (( ${#common_modules[@]} && ${#virt_modules[@]} ))
 
 PREBUILT_PATH="$ANDROID_BUILD_TOP/kernel/prebuilts"
-GKI_MODULES_PATH="${PREBUILT_PATH}/${KERNEL_VERSION}/${ARCH}"
-VIRT_MODULES_PATH="${PREBUILT_PATH}/common-modules/virtual-device/${KERNEL_VERSION}/${ARCH//_/-}"
+GKI_MODULES_PATH="${PREBUILT_PATH}/${KERNEL_VERSION}/${kernel_arch}${kernel_subdir}"
+VIRT_MODULES_PATH="${PREBUILT_PATH}/common-modules/virtual-device/${KERNEL_VERSION}/${kernel_arch//_/-}${kernel_subdir}"
 
 mkdir -p "${GKI_MODULES_PATH}" "${VIRT_MODULES_PATH}"
 # Do not retain modules from a different build or signing key.
