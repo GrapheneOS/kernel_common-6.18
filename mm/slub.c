@@ -2576,6 +2576,7 @@ static __always_inline
 bool slab_free_hook(struct kmem_cache *s, void *x, bool init,
 		    bool after_rcu_delay, bool canary)
 {
+	bool kasan_init = init && !IS_ENABLED(CONFIG_SLAB_CANARY);
 	/* Are the object contents still accessible? */
 	bool still_accessible = (s->flags & SLAB_TYPESAFE_BY_RCU) && !after_rcu_delay;
 
@@ -2649,7 +2650,7 @@ bool slab_free_hook(struct kmem_cache *s, void *x, bool init,
 
 		inuse = get_info_end(s);
 		orig_size = get_orig_size(s, x);
-		if (!kasan_has_integrated_init())
+		if (!kasan_init || !kasan_has_integrated_init())
 			memset(kasan_reset_tag(x), 0, orig_size);
 		rsize = (s->flags & SLAB_RED_ZONE) ? s->red_left_pad : 0;
 
@@ -2673,7 +2674,7 @@ bool slab_free_hook(struct kmem_cache *s, void *x, bool init,
 	}
 
 	/* KASAN might put x into memory quarantine, delaying its reuse. */
-	return !kasan_slab_free(s, x, init, still_accessible, false);
+	return !kasan_slab_free(s, x, kasan_init, still_accessible, false);
 }
 
 static __fastpath_inline
@@ -5137,7 +5138,7 @@ bool slab_post_alloc_hook(struct kmem_cache *s, struct list_lru *lru,
 	 * penalty on production builds, as slab_debug is not intended to be
 	 * enabled there.
 	 */
-	if (__slub_debug_enabled())
+	if (__slub_debug_enabled() || IS_ENABLED(CONFIG_SLAB_CANARY))
 		kasan_init = false;
 
 	/*
