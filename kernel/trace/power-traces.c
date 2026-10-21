@@ -17,6 +17,8 @@
 EXPORT_TRACEPOINT_SYMBOL_GPL(suspend_resume);
 EXPORT_TRACEPOINT_SYMBOL_GPL(cpu_idle);
 EXPORT_TRACEPOINT_SYMBOL_GPL(cpu_frequency);
+#ifdef CONFIG_PM_SLEEP
 EXPORT_TRACEPOINT_SYMBOL_GPL(device_pm_callback_start);
 EXPORT_TRACEPOINT_SYMBOL_GPL(device_pm_callback_end);
+#endif
 
