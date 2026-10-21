@@ -373,11 +373,12 @@ static int fuse_dentry_init(struct dentry *dentry)
 
 	return ret;
 }
+#if BITS_PER_LONG < 64 || defined(CONFIG_FUSE_BPF)
 static void fuse_dentry_release(struct dentry *dentry)
 {
 	struct fuse_dentry *fd = dentry->d_fsdata;
 
-#if BITS_PER_LONG < 64 || defined(CONFIG_FUSE_BPF)
+#ifdef CONFIG_FUSE_BPF
 	if (fd && fd->backing_path.dentry)
 		path_put(&fd->backing_path);
 
@@ -387,6 +388,7 @@ static void fuse_dentry_release(struct dentry *dentry)
 
 	kfree_rcu(fd, rcu);
 }
+#endif
 
 static int fuse_dentry_delete(const struct dentry *dentry)
 {
@@ -482,7 +484,9 @@ const struct dentry_operations fuse_dentry_operations = {
 	.d_revalidate	= fuse_dentry_revalidate,
 	.d_delete	= fuse_dentry_delete,
 	.d_init		= fuse_dentry_init,
+#if BITS_PER_LONG < 64 || defined(CONFIG_FUSE_BPF)
 	.d_release	= fuse_dentry_release,
+#endif
 	.d_automount	= fuse_dentry_automount,
 	.d_canonical_path = fuse_dentry_canonical_path,
 };
