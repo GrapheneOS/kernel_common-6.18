@@ -295,6 +295,23 @@ void __init arm64_memblock_init(void)
 		}
 	}
 
+	if (IS_ENABLED(CONFIG_RANDOMIZE_BASE) && !IS_ENABLED(CONFIG_MEMORY_HOTPLUG)) {
+		extern u16 memstart_offset_seed;
+		u64 range = linear_region_size -
+			    (memblock_end_of_DRAM() - memblock_start_of_DRAM());
+
+		/*
+		 * If the size of the linear region exceeds, by a sufficient
+		 * margin, the size of the region that the available physical
+		 * memory spans, randomize the linear region as well.
+		 */
+		if (memstart_offset_seed > 0 && range >= ARM64_MEMSTART_ALIGN) {
+			range /= ARM64_MEMSTART_ALIGN;
+			memstart_addr -= ARM64_MEMSTART_ALIGN *
+					 ((range * memstart_offset_seed) >> 16);
+		}
+	}
+
 	/*
 	 * Register the kernel text, kernel data, initrd, and initial
 	 * pagetables with memblock.
