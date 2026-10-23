@@ -23,14 +23,14 @@
 	__ret;										\
 })
 
-/* HVCs returning a number of elements: handle pending hyp_req and return num elems */
+/* Retry only after progress or a successful refill; return the element count. */
 #define kvm_call_hyp_nvhe_elem(res, gfp, ret, ...)					\
 ({											\
 	struct kvm_hyp_req __req;							\
 	size_t __num_elems;								\
-	ret = 0;									\
 	res = kvm_call_hyp_nvhe_smccc(__VA_ARGS__);					\
 	__num_elems = res.a1;								\
+	ret = __num_elems ? 0 : -ENOMEM;						\
 	if (smccc_to_hyp_req(&__req, &res))						\
 		ret = handle_hyp_req(NULL, &__req, (void *)(uintptr_t)gfp);		\
 	__num_elems;									\
@@ -237,7 +237,7 @@ int kvm_iommu_map_pages(pkvm_handle_t domain_id, unsigned long iova,
 		WARN_ON(mapped > pgcount * pgsize);
 		pgcount -= mapped / pgsize;
 		*total_mapped += mapped;
-	} while (*total_mapped < size && !ret);
+	} while (*total_mapped < size && !res.a0 && !ret);
 
 	/* See handle___pkvm_host_iommu_map_pages */
 	if (*total_mapped < size)
