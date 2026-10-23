@@ -806,6 +806,7 @@
   drm_bridge_hpd_enable
   drm_bridge_hpd_notify
   drm_bridge_is_panel
+  drm_bridge_put
   drm_bridge_remove
   drm_compat_ioctl
   drm_connector_attach_encoder
@@ -1293,6 +1294,8 @@
   ida_alloc_range
   ida_destroy
   ida_free
+  idle_inject_get_duration
+  idle_inject_register
   idr_alloc
   idr_alloc_u32
   idr_destroy
@@ -1857,6 +1860,7 @@
   out_of_line_wait_on_bit_lock
   __page_frag_alloc_align
   __page_frag_cache_drain
+  page_frag_cache_drain
   page_frag_free
   page_pinner_inited
   __page_pinner_put_page
@@ -2289,6 +2293,7 @@
   sched_feat_keys
   sched_prio_to_weight
   sched_prio_to_wmult
+  __sched_proxy_exec
   sched_setattr_nocheck
   sched_set_fifo
   sched_set_normal
@@ -2786,6 +2791,7 @@
   __traceiter_android_vh_ufs_send_uic_command
   __traceiter_android_vh_ufs_update_sysfs
   __traceiter_android_vh_update_thermal_trip_flag
+  __traceiter_android_vh_use_amu_fie
   __traceiter_android_vh_vmscan_kswapd_done
   __traceiter_cma_alloc_finish
   __traceiter_cma_alloc_start
@@ -2955,6 +2961,7 @@
   __tracepoint_android_vh_ufs_send_uic_command
   __tracepoint_android_vh_ufs_update_sysfs
   __tracepoint_android_vh_update_thermal_trip_flag
+  __tracepoint_android_vh_use_amu_fie
   __tracepoint_android_vh_vmscan_kswapd_done
   __tracepoint_cma_alloc_finish
   __tracepoint_cma_alloc_start
