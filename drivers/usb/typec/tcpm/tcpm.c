@@ -36,6 +36,15 @@
 
 #include <uapi/linux/sched/types.h>
 
+#ifdef CONFIG_ANDROID_VENDOR_HOOKS
+#define CREATE_TRACE_POINTS
+#endif
+#include <trace/hooks/typec.h>
+
+#ifdef CONFIG_ANDROID_VENDOR_HOOKS
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_typec_store_partner_src_caps);
+#endif
+
 #define FOREACH_STATE(S)			\
 	S(INVALID_STATE),			\
 	S(TOGGLING),			\
@@ -3553,6 +3562,8 @@ static void tcpm_pd_data_request(struct tcpm_port *port,
 				   port->nr_source_caps);
 
 		tcpm_register_source_caps(port);
+		trace_android_vh_typec_store_partner_src_caps(port, &port->nr_source_caps,
+							      &port->source_caps);
 
 		/*
 		 * Adjust revision in subsequent message headers, as required,
