@@ -6250,12 +6250,13 @@ static inline int ufshcd_get_bkops_status(struct ufs_hba *hba, u32 *status)
 }
 
 /**
- * ufshcd_bkops_ctrl - control the auto bkops based on current bkops status
+ * ufshcd_bkops_ctrl_threshold - control auto bkops with an explicit threshold
  * @hba: per-adapter instance
+ * @status: minimum bkops status at which to enable background operations
  *
  * Read the bkops_status from the UFS device and Enable fBackgroundOpsEn
  * flag in the device to permit background operations if the device
- * bkops_status is greater than or equal to the "hba->urgent_bkops_lvl",
+ * bkops_status is greater than or equal to @status,
  * disable otherwise.
  *
  * Return: 0 for success, non-zero in case of failure.
@@ -6264,9 +6265,8 @@ static inline int ufshcd_get_bkops_status(struct ufs_hba *hba, u32 *status)
  * to know whether auto bkops is enabled or disabled after this function
  * returns control to it.
  */
-int ufshcd_bkops_ctrl(struct ufs_hba *hba)
+int ufshcd_bkops_ctrl_threshold(struct ufs_hba *hba, enum bkops_status status)
 {
-	enum bkops_status status = hba->urgent_bkops_lvl;
 	u32 curr_status = 0;
 	int err;
 
@@ -6288,6 +6288,12 @@ int ufshcd_bkops_ctrl(struct ufs_hba *hba)
 		err = ufshcd_disable_auto_bkops(hba);
 out:
 	return err;
+}
+EXPORT_SYMBOL_GPL(ufshcd_bkops_ctrl_threshold);
+
+int ufshcd_bkops_ctrl(struct ufs_hba *hba)
+{
+	return ufshcd_bkops_ctrl_threshold(hba, hba->urgent_bkops_lvl);
 }
 EXPORT_SYMBOL_GPL(ufshcd_bkops_ctrl);
 

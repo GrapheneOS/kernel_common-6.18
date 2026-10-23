@@ -2805,6 +2805,7 @@
   udp4_hwcsum
   ufshcd_auto_hibern8_update
   ufshcd_bkops_ctrl
+  ufshcd_bkops_ctrl_threshold
   ufshcd_clkgate_delay_set
   ufshcd_config_pwr_mode
   ufshcd_dme_get_attr
