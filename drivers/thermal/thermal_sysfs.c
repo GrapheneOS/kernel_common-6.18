@@ -151,7 +151,7 @@ trip_point_hyst_store(struct device *dev, struct device_attribute *attr,
 {
 	struct thermal_trip *trip = thermal_trip_of_attr(attr, hyst);
 	struct thermal_zone_device *tz = to_thermal_zone(dev);
-	int hyst;
+	int hyst, ret;
 
 	if (kstrtoint(buf, 10, &hyst) || hyst < 0)
 		return -EINVAL;
@@ -160,6 +160,16 @@ trip_point_hyst_store(struct device *dev, struct device_attribute *attr,
 
 	if (hyst == trip->hysteresis)
 		return count;
+
+	if (trip->temperature != THERMAL_TEMP_INVALID &&
+	    trip->temperature - hyst <= THERMAL_TEMP_INVALID)
+		return -EINVAL;
+
+	if (tz->ops.set_trip_hyst) {
+		ret = tz->ops.set_trip_hyst(tz, trip, hyst);
+		if (ret)
+			return ret;
+	}
 
 	/*
 	 * Allow the hysteresis to be updated when the temperature is invalid
@@ -171,9 +181,6 @@ trip_point_hyst_store(struct device *dev, struct device_attribute *attr,
 		WRITE_ONCE(trip->hysteresis, hyst);
 		return count;
 	}
-
-	if (trip->temperature - hyst <= THERMAL_TEMP_INVALID)
-		return -EINVAL;
 
 	thermal_zone_set_trip_hyst(tz, trip, hyst);
 
