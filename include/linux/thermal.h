@@ -111,7 +111,7 @@ struct thermal_zone_device_ops {
 	void (*hot)(struct thermal_zone_device *);
 	void (*critical)(struct thermal_zone_device *);
 
-	ANDROID_KABI_RESERVE(1);
+	ANDROID_KABI_USE(1, bool writable_trip_hyst);
 };
 
 struct thermal_cooling_device_ops {
