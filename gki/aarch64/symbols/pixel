@@ -2642,6 +2642,7 @@
   __traceiter_android_vh_ufs_send_uic_command
   __traceiter_android_vh_ufs_update_sysfs
   __traceiter_android_vh_vmscan_kswapd_done
+  __traceiter_clock_set_rate
   __traceiter_device_pm_callback_end
   __traceiter_device_pm_callback_start
   __traceiter_gpu_mem_total
@@ -2732,6 +2733,7 @@
   __tracepoint_android_vh_ufs_send_uic_command
   __tracepoint_android_vh_ufs_update_sysfs
   __tracepoint_android_vh_vmscan_kswapd_done
+  __tracepoint_clock_set_rate
   __tracepoint_device_pm_callback_end
   __tracepoint_device_pm_callback_start
   __tracepoint_gpu_mem_total
