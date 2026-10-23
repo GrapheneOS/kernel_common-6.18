@@ -496,6 +496,29 @@ DEFINE_EVENT(dev_pm_qos_request, dev_pm_qos_remove_request,
 	TP_ARGS(name, type, new_value)
 );
 
+/* Pixel frequency votes also describe domains without a struct clk_core. */
+TRACE_EVENT(clock_set_rate,
+
+	TP_PROTO(const char *name, unsigned int state, unsigned int cpu_id),
+
+	TP_ARGS(name, state, cpu_id),
+
+	TP_STRUCT__entry(
+		__string(name, name)
+		__field(u64, state)
+		__field(u64, cpu_id)
+	),
+
+	TP_fast_assign(
+		__assign_str(name);
+		__entry->state = state;
+		__entry->cpu_id = cpu_id;
+	),
+
+	TP_printk("%s state=%lu cpu_id=%lu", __get_str(name),
+		(unsigned long)__entry->state, (unsigned long)__entry->cpu_id)
+);
+
 TRACE_EVENT(guest_halt_poll_ns,
 
 	TP_PROTO(bool grow, unsigned int new, unsigned int old),
