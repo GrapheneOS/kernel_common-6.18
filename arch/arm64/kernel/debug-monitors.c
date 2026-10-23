@@ -16,6 +16,7 @@
 #include <linux/stat.h>
 #include <linux/uaccess.h>
 #include <linux/sched/task_stack.h>
+#include <trace/hooks/traps.h>
 
 #include <asm/cpufeature.h>
 #include <asm/cputype.h>
@@ -209,6 +210,8 @@ NOKPROBE_SYMBOL(do_el1_softstep);
 
 static int call_el1_break_hook(struct pt_regs *regs, unsigned long esr)
 {
+	bool handled = false;
+
 	if (esr_brk_comment(esr) == BUG_BRK_IMM)
 		return bug_brk_handler(regs, esr);
 
@@ -243,7 +246,8 @@ static int call_el1_break_hook(struct pt_regs *regs, unsigned long esr)
 		esr_brk_comment(esr) == KRETPROBES_BRK_IMM)
 		return kretprobe_brk_handler(regs, esr);
 
-	return DBG_HOOK_ERROR;
+	trace_android_rvh_do_el1_brk(regs, esr, &handled);
+	return handled ? DBG_HOOK_HANDLED : DBG_HOOK_ERROR;
 }
 NOKPROBE_SYMBOL(call_el1_break_hook);
 
