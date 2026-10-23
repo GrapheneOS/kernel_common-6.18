@@ -1,0 +1,20 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+#undef TRACE_SYSTEM
+#define TRACE_SYSTEM typec
+#define TRACE_INCLUDE_PATH trace/hooks
+
+#if !defined(_TRACE_HOOK_TYPEC_H) || defined(TRACE_HEADER_MULTI_READ)
+#define _TRACE_HOOK_TYPEC_H
+
+#include <linux/usb/pd.h>
+#include <trace/hooks/vendor_hooks.h>
+
+struct tcpm_port;
+
+DECLARE_HOOK(android_vh_typec_store_partner_src_caps,
+	TP_PROTO(struct tcpm_port *port, unsigned int *nr_source_caps,
+		 u32 (*source_caps)[PDO_MAX_OBJECTS]),
+	TP_ARGS(port, nr_source_caps, source_caps));
+
+#endif
+#include <trace/define_trace.h>
