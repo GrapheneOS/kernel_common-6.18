@@ -1014,6 +1014,7 @@
   extcon_set_property_capability
   extcon_set_state_sync
   extcon_unregister_notifier
+  fair_sched_class
   fasync_helper
   faux_device_create
   faux_device_destroy
