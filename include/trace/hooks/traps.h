@@ -46,6 +46,11 @@ DECLARE_RESTRICTED_HOOK(android_rvh_el0_impdef_exception,
 	TP_PROTO(struct pt_regs *regs, unsigned long esr, bool *handled),
 	TP_ARGS(regs, esr, handled), 1)
 
+/* Invoked only for EL1 BRK immediates not handled by the core kernel. */
+DECLARE_RESTRICTED_HOOK(android_rvh_do_el1_brk,
+	TP_PROTO(struct pt_regs *regs, unsigned long esr, bool *handled),
+	TP_ARGS(regs, esr, handled), 1);
+
 #endif /* _TRACE_HOOK_TRAPS_H */
 /* This part must be outside protection */
 #include <trace/define_trace.h>
