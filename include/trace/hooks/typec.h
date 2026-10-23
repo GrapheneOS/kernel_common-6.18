@@ -20,5 +20,9 @@ DECLARE_HOOK(android_vh_typec_tcpm_log,
 	TP_PROTO(const char *log, bool *bypass),
 	TP_ARGS(log, bypass));
 
+DECLARE_HOOK(android_vh_typec_tcpm_modify_src_caps,
+	TP_PROTO(unsigned int *nr_src_pdo, u32 (*src_pdo)[], bool *modified),
+	TP_ARGS(nr_src_pdo, src_pdo, modified));
+
 #endif
 #include <trace/define_trace.h>
