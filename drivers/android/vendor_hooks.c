@@ -781,3 +781,5 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_xhci_suspend);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_zs_shrinker_adjust);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_zs_shrinker_bypass);
 /* keep-sorted end */
+
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_do_el1_brk);
