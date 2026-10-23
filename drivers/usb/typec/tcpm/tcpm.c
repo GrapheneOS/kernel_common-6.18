@@ -43,6 +43,7 @@
 
 #ifdef CONFIG_ANDROID_VENDOR_HOOKS
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_typec_store_partner_src_caps);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_typec_tcpm_log);
 #endif
 
 #define FOREACH_STATE(S)			\
@@ -836,6 +837,7 @@ __printf(2, 0)
 static void _tcpm_log(struct tcpm_port *port, const char *fmt, va_list args)
 {
 	char tmpbuffer[LOG_BUFFER_ENTRY_SIZE];
+	bool bypass_log = false;
 	u64 ts_nsec = local_clock();
 	unsigned long rem_nsec;
 
@@ -850,6 +852,9 @@ static void _tcpm_log(struct tcpm_port *port, const char *fmt, va_list args)
 	}
 
 	vsnprintf(tmpbuffer, sizeof(tmpbuffer), fmt, args);
+	trace_android_vh_typec_tcpm_log(tmpbuffer, &bypass_log);
+	if (bypass_log)
+		goto abort;
 
 	if (tcpm_log_full(port)) {
 		port->logbuffer_head = max(port->logbuffer_head - 1, 0);
