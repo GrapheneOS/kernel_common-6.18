@@ -111,7 +111,9 @@ struct thermal_zone_device_ops {
 	void (*hot)(struct thermal_zone_device *);
 	void (*critical)(struct thermal_zone_device *);
 
-	ANDROID_KABI_RESERVE(1);
+	/* Firmware-backed sensors must update hardware hysteresis as well. */
+	ANDROID_KABI_USE(1, int (*set_trip_hyst)(struct thermal_zone_device *,
+					     const struct thermal_trip *, int));
 };
 
 struct thermal_cooling_device_ops {
