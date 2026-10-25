@@ -1514,6 +1514,8 @@ int __init pkvm_load_early_modules(void)
 				       token, err);
 				goto out;
 			}
+
+			flush_deferred_probe_now();
 		}
 
 		if (buf)
