@@ -837,6 +837,18 @@ void wait_for_device_probe(void)
 }
 EXPORT_SYMBOL_GPL(wait_for_device_probe);
 
+/* Resolve early pKVM module dependencies before deferred probing is enabled. */
+void __init flush_deferred_probe_now(void)
+{
+	if (WARN_ON(driver_deferred_probe_enable))
+		return;
+
+	driver_deferred_probe_enable = true;
+	driver_deferred_probe_trigger();
+	wait_for_device_probe();
+	driver_deferred_probe_enable = false;
+}
+
 static int __driver_probe_device(const struct device_driver *drv, struct device *dev)
 {
 	int ret = 0;
