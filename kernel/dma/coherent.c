@@ -18,6 +18,7 @@ struct dma_coherent_mem {
 	unsigned long	*bitmap;
 	spinlock_t	spinlock;
 	bool		use_dev_dma_pfn_offset;
+	struct dma_coherent_mem *next;
 };
 
 static inline struct dma_coherent_mem *dev_get_coherent_memory(struct device *dev)
@@ -76,12 +77,14 @@ out_unmap_membase:
 
 static void _dma_release_coherent_memory(struct dma_coherent_mem *mem)
 {
-	if (!mem)
-		return;
+	while (mem) {
+		struct dma_coherent_mem *next = mem->next;
 
-	memunmap(mem->virt_base);
-	bitmap_free(mem->bitmap);
-	kfree(mem);
+		memunmap(mem->virt_base);
+		bitmap_free(mem->bitmap);
+		kfree(mem);
+		mem = next;
+	}
 }
 
 static int dma_assign_coherent_memory(struct device *dev,
@@ -130,6 +133,74 @@ int dma_declare_coherent_memory(struct device *dev, phys_addr_t phys_addr,
 	return ret;
 }
 
+/**
+ * dma_declare_coherent_memory_regions() - install ordered coherent memory pools
+ * @dev: device without an existing coherent memory pool
+ * @regions: disjoint, page-aligned physical and device address ranges
+ * @count: number of ranges
+ *
+ * Allocations try each region in order and fail if all regions are exhausted.
+ * Streaming DMA mappings continue to use the device's normal DMA backend.
+ * The caller must establish any required IOMMU mappings before allocating and
+ * quiesce DMA allocations before setup or dma_release_coherent_memory().
+ * No pool is attached if initialization of any region fails.
+ */
+int dma_declare_coherent_memory_regions(struct device *dev,
+					const struct dma_coherent_region *regions,
+					unsigned int count)
+{
+	struct dma_coherent_mem *head = NULL, **tail = &head;
+	unsigned int i, j;
+	int ret;
+
+	if (!dev || !regions || !count)
+		return -EINVAL;
+	if (dev->dma_mem)
+		return -EBUSY;
+
+	for (i = 0; i < count; i++) {
+		const struct dma_coherent_region *r = &regions[i];
+		phys_addr_t phys_end;
+		dma_addr_t dma_end;
+
+		if (!r->size || !PAGE_ALIGNED(r->size) ||
+		    !PAGE_ALIGNED(r->phys_addr) || !PAGE_ALIGNED(r->device_addr) ||
+		    (r->size >> PAGE_SHIFT) > INT_MAX ||
+		    check_add_overflow(r->phys_addr, (phys_addr_t)r->size - 1, &phys_end) ||
+		    check_add_overflow(r->device_addr, (dma_addr_t)r->size - 1, &dma_end))
+			return -EINVAL;
+		for (j = 0; j < i; j++) {
+			const struct dma_coherent_region *p = &regions[j];
+
+			if ((r->phys_addr <= p->phys_addr + p->size - 1 &&
+			     p->phys_addr <= phys_end) ||
+			    (r->device_addr <= p->device_addr + p->size - 1 &&
+			     p->device_addr <= dma_end))
+				return -EINVAL;
+		}
+	}
+
+	for (i = 0; i < count; i++) {
+		const struct dma_coherent_region *r = &regions[i];
+		struct dma_coherent_mem *mem;
+
+		mem = dma_init_coherent_memory(r->phys_addr, r->device_addr, r->size, false);
+		if (IS_ERR(mem)) {
+			ret = PTR_ERR(mem);
+			goto release;
+		}
+		*tail = mem;
+		tail = &mem->next;
+	}
+	ret = dma_assign_coherent_memory(dev, head);
+	if (!ret)
+		return 0;
+release:
+	_dma_release_coherent_memory(head);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(dma_declare_coherent_memory_regions);
+
 void dma_release_coherent_memory(struct device *dev)
 {
 	if (dev) {
@@ -137,6 +208,7 @@ void dma_release_coherent_memory(struct device *dev)
 		dev->dma_mem = NULL;
 	}
 }
+EXPORT_SYMBOL_GPL(dma_release_coherent_memory);
 
 static void *__dma_alloc_from_coherent(struct device *dev,
 				       struct dma_coherent_mem *mem,
@@ -192,7 +264,12 @@ int dma_alloc_from_dev_coherent(struct device *dev, ssize_t size,
 	if (!mem)
 		return 0;
 
-	*ret = __dma_alloc_from_coherent(dev, mem, size, dma_handle);
+	do {
+		*ret = __dma_alloc_from_coherent(dev, mem, size, dma_handle);
+		if (*ret)
+			break;
+		mem = mem->next;
+	} while (mem);
 	return 1;
 }
 
@@ -228,7 +305,10 @@ int dma_release_from_dev_coherent(struct device *dev, int order, void *vaddr)
 {
 	struct dma_coherent_mem *mem = dev_get_coherent_memory(dev);
 
-	return __dma_release_from_coherent(mem, order, vaddr);
+	for (; mem; mem = mem->next)
+		if (__dma_release_from_coherent(mem, order, vaddr))
+			return 1;
+	return 0;
 }
 
 static int __dma_mmap_from_coherent(struct dma_coherent_mem *mem,
@@ -273,7 +353,10 @@ int dma_mmap_from_dev_coherent(struct device *dev, struct vm_area_struct *vma,
 {
 	struct dma_coherent_mem *mem = dev_get_coherent_memory(dev);
 
-	return __dma_mmap_from_coherent(mem, vma, vaddr, size, ret);
+	for (; mem; mem = mem->next)
+		if (__dma_mmap_from_coherent(mem, vma, vaddr, size, ret))
+			return 1;
+	return 0;
 }
 
 #ifdef CONFIG_DMA_GLOBAL_POOL
