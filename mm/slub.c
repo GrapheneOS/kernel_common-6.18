@@ -2668,10 +2668,27 @@ bool slab_free_hook(struct kmem_cache *s, void *x, bool init,
 
 	if (canary) {
 		set_canary(s, x, s->random_inactive);
+	} else if (IS_ENABLED(CONFIG_KASAN_GENERIC)) {
+		/*
+		 * Quarantine eviction bypasses the sheaf free paths and returns
+		 * objects directly to the slab freelist. Set its canary before
+		 * KASAN can take ownership of the object.
+		 */
+		check_set_canary(s, x,
+				after_rcu_delay ? s->sheaf_random_inactive : s->random_active,
+				s->random_inactive);
 	}
 
 	/* KASAN might put x into memory quarantine, delaying its reuse. */
-	return !kasan_slab_free(s, x, kasan_init, still_accessible, false);
+	if (kasan_slab_free(s, x, kasan_init, still_accessible, false))
+		return false;
+
+	/* Restore the state expected by the sheaf free paths. */
+	if (IS_ENABLED(CONFIG_KASAN_GENERIC) && !canary)
+		check_set_canary(s, x, s->random_inactive,
+				after_rcu_delay ? s->sheaf_random_inactive : s->random_active);
+
+	return true;
 }
 
 static __fastpath_inline
