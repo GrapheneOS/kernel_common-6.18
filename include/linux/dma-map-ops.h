@@ -164,7 +164,16 @@ static inline void dma_contiguous_early_fixup(phys_addr_t base, unsigned long si
 }
 #endif /* CONFIG_DMA_CMA*/
 
+struct dma_coherent_region {
+	phys_addr_t phys_addr;
+	dma_addr_t device_addr;
+	size_t size;
+};
+
 #ifdef CONFIG_DMA_DECLARE_COHERENT
+int dma_declare_coherent_memory_regions(struct device *dev,
+					const struct dma_coherent_region *regions,
+					unsigned int count);
 int dma_declare_coherent_memory(struct device *dev, phys_addr_t phys_addr,
 		dma_addr_t device_addr, size_t size);
 void dma_release_coherent_memory(struct device *dev);
@@ -174,6 +183,13 @@ int dma_release_from_dev_coherent(struct device *dev, int order, void *vaddr);
 int dma_mmap_from_dev_coherent(struct device *dev, struct vm_area_struct *vma,
 		void *cpu_addr, size_t size, int *ret);
 #else
+static inline int dma_declare_coherent_memory_regions(struct device *dev,
+						      const struct dma_coherent_region *regions,
+						      unsigned int count)
+{
+	return -EOPNOTSUPP;
+}
+
 static inline int dma_declare_coherent_memory(struct device *dev,
 		phys_addr_t phys_addr, dma_addr_t device_addr, size_t size)
 {

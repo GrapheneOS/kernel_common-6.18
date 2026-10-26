@@ -612,6 +612,7 @@
   dma_buf_vunmap
   dma_buf_vunmap_unlocked
   dma_contiguous_default_area
+  dma_declare_coherent_memory_regions
   dmaengine_unmap_put
   dma_fence_add_callback
   dma_fence_allocate_private_stub
@@ -655,6 +656,7 @@
   dma_pool_destroy
   dma_pool_free
   dma_release_channel
+  dma_release_coherent_memory
   dma_request_chan
   __dma_request_channel
   dma_resv_fini
