@@ -2914,6 +2914,9 @@ static void __rcu_free_sheaf_prepare(struct kmem_cache *s,
 	while (i < sheaf->size) {
 		struct slab *slab = virt_to_slab(p[i]);
 
+		/* The grace period has ended; RCU readers no longer need the active canary. */
+		check_set_canary(s, p[i], s->random_active, s->sheaf_random_inactive);
+
 		memcg_slab_free_hook(s, slab, p + i, 1);
 		alloc_tagging_slab_free_hook(s, slab, p + i, 1);
 
@@ -6520,7 +6523,6 @@ do_free:
 	 * this with size already at capacity, so no OOB write is possible.
 	 */
 
-	check_set_canary(s, obj, s->random_active, s->sheaf_random_inactive);
 	rcu_sheaf->objects[rcu_sheaf->size++] = obj;
 
 	if (likely(rcu_sheaf->size < s->sheaf_capacity)) {
