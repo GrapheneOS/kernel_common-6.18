@@ -4,8 +4,8 @@ set -o errexit -o nounset -o pipefail
 
 [[ ${ARCH:-} =~ ^(aarch64(_16k)?|x86_64)$ ]] || { echo "unknown or undefined ARCH" >&2; exit 1; }
 
-tools/bazel run "$@" "//common:kernel_${ARCH}_dist" -- --wipe_destdir --destdir=common_dist
-tools/bazel run "$@" "//common-modules/virtual-device:virtual_device_${ARCH}_dist" -- --wipe_destdir --destdir=virt_dist
+tools/bazel run "$@" "//common:kernel_${ARCH}_dist" --config=stamp -- --wipe_destdir --destdir=common_dist
+tools/bazel run "$@" "//common-modules/virtual-device:virtual_device_${ARCH}_dist" --config=stamp -- --wipe_destdir --destdir=virt_dist
 
 # Query the outputs of this configuration rather than searching cached builds
 # for signing keys. The kernel and both module sets must use the same key.
