@@ -181,7 +181,7 @@ int pkvm_host_stage2_topup(gfp_t gfp)
 	if (ret && !mc.nr_pages)
 		return ret;
 
-	ret = __pkvm_topup_hyp_alloc_mgt_mc(HYP_ALLOC_MGT_HOSTS2_ID, &mc);
+	ret = __pkvm_topup_hyp_alloc_mgt_mc(HYP_ALLOC_MGT_HOSTS2_ID, &mc, gfp);
 	if (ret)
 		__free_hyp_memcache(&mc, __host_stage2_free, kvm_host_va, NULL);
 
@@ -1979,7 +1979,8 @@ void pkvm_el2_mod_frob_sections(Elf_Ehdr *ehdr, Elf_Shdr *sechdrs, char *secstri
 }
 #endif /* CONFIG_MODULES */
 
-int __pkvm_topup_hyp_alloc_mgt_mc(enum hyp_alloc_mgt_id id, struct kvm_hyp_memcache *mc)
+int __pkvm_topup_hyp_alloc_mgt_mc(enum hyp_alloc_mgt_id id, struct kvm_hyp_memcache *mc,
+			       gfp_t gfp)
 {
 	struct arm_smccc_res res;
 	int ret;
@@ -1994,7 +1995,7 @@ int __pkvm_topup_hyp_alloc_mgt_mc(enum hyp_alloc_mgt_id id, struct kvm_hyp_memca
 		if (!ret)
 			break;
 
-		ret = __pkvm_handle_smccc_req(&res, NULL);
+		ret = __pkvm_handle_smccc_req(&res, (void *)(uintptr_t)gfp);
 		if (ret)
 			return ret;
 	} while (1);
@@ -2013,7 +2014,7 @@ int __pkvm_topup_hyp_alloc(unsigned long nr_pages)
 	if (ret)
 		return ret;
 
-	ret = __pkvm_topup_hyp_alloc_mgt_mc(HYP_ALLOC_MGT_HEAP_ID, &mc);
+	ret = __pkvm_topup_hyp_alloc_mgt_mc(HYP_ALLOC_MGT_HEAP_ID, &mc, GFP_KERNEL);
 	if (ret)
 		free_hyp_memcache(&mc);
 
