@@ -1845,6 +1845,7 @@
   pci_bus_read_config_dword
   pci_bus_type
   pci_clear_master
+  pci_d3cold_disable
   pci_device_group
   pci_dev_put
   pci_disable_ats
