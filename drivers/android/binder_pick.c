@@ -22,7 +22,7 @@
 #endif
 #define MODULE_PARAM_PREFIX "binder."
 
-int binder_use_rust;
+int binder_use_rust = IS_ENABLED(CONFIG_ANDROID_BINDER_IPC_RUST);
 static int binder_loaded;
 
 static DEFINE_MUTEX(binder_use_rust_lock);
@@ -67,7 +67,7 @@ int on_binderfs_mount(void)
 	 * requested.
 	 */
 	if (binder_use_rust)
-		pr_warn("Using C Binder even though binder.impl=rust is set.\n");
+		pr_warn("Using C Binder because Rust Binder was not loaded before mounting binderfs.\n");
 
 	binder_use_rust = false;
 	binder_loaded = true;
