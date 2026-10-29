@@ -1436,6 +1436,9 @@ static int security_sid_to_context_type_core(u32 sid, u32 *out,
 	struct sidtab_entry *entry;
 	int rc = 0;
 
+	if (!selinux_initialized())
+		return -EINVAL;
+
 	rcu_read_lock();
 	policy = rcu_dereference(selinux_state.policy);
 	policydb = &policy->policydb;
