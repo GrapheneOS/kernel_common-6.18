@@ -1295,6 +1295,11 @@ void blk_finish_plug(struct blk_plug *plug)
 {
 	if (plug == current->plug) {
 		__blk_flush_plug(plug, false);
+		/*
+		 * Clear PF_BLOCK_TS before detaching the plug, as a task switch
+		 * may invalidate the cached timestamp when the flag is set.
+		 */
+		barrier();
 		current->plug = NULL;
 	}
 }
