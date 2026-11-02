@@ -2589,6 +2589,7 @@ EXPORT_SYMBOL_GPL(cpufreq_unregister_governor);
  *********************************************************************/
 
 DEFINE_PER_CPU(unsigned long, cpufreq_pressure);
+EXPORT_PER_CPU_SYMBOL_GPL(cpufreq_pressure);
 
 /**
  * cpufreq_update_pressure() - Update cpufreq pressure for CPUs

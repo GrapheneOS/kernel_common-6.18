@@ -271,6 +271,7 @@
   cpufreq_get
   cpufreq_get_driver_data
   cpufreq_policy_transition_delay_us
+  cpufreq_pressure
   cpufreq_quick_get
   cpufreq_register_driver
   cpufreq_register_governor
