@@ -438,7 +438,8 @@ static int create_trip_attrs(struct thermal_zone_device *tz)
 		trip_attrs->hyst.attr.attr.name = trip_attrs->hyst.name;
 		trip_attrs->hyst.attr.attr.mode = S_IRUGO;
 		trip_attrs->hyst.attr.show = trip_point_hyst_show;
-		if (td->trip.flags & THERMAL_TRIP_FLAG_RW_HYST) {
+		if (td->trip.flags & THERMAL_TRIP_FLAG_RW_HYST ||
+		    tz->ops.set_trip_hyst) {
 			trip_attrs->hyst.attr.attr.mode |= S_IWUSR;
 			trip_attrs->hyst.attr.store = trip_point_hyst_store;
 		}
