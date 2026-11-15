@@ -223,6 +223,8 @@ struct snd_usb_platform_ops {
 	void (*disconnect_cb)(struct snd_usb_audio *chip);
 	void (*suspend_cb)(struct usb_interface *intf, pm_message_t message);
 	void (*resume_cb)(struct usb_interface *intf);
+	/* Called under register_mutex before parsing each interface. */
+	void (*quirks_cb)(struct snd_usb_audio *chip);
 };
 
 struct snd_usb_stream *

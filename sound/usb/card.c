@@ -1043,6 +1043,10 @@ static int usb_audio_probe(struct usb_interface *intf,
 	if (chip->quirk_flags & QUIRK_FLAG_DISABLE_AUTOSUSPEND)
 		usb_disable_autosuspend(interface_to_usbdev(intf));
 
+	/* Apply platform quirks before they affect stream/endpoint parsing. */
+	if (platform_ops && platform_ops->quirks_cb)
+		platform_ops->quirks_cb(chip);
+
 	/*
 	 * For devices with more than one control interface, we assume the
 	 * first contains the audio controls. We might need a more specific
