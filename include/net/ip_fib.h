@@ -317,7 +317,7 @@ static inline int fib_lookup(struct net *net, const struct flowi4 *flp,
 			     struct fib_result *res, unsigned int flags)
 {
 	struct fib_table *tb;
-	int err = -ENETUNREACH;
+	int err = -EAGAIN;
 
 	rcu_read_lock();
 
@@ -326,7 +326,7 @@ static inline int fib_lookup(struct net *net, const struct flowi4 *flp,
 		err = fib_table_lookup(tb, flp, res, flags | FIB_LOOKUP_NOREF);
 
 	if (err == -EAGAIN)
-		err = -ENETUNREACH;
+		err = (flags & FIB_LOOKUP_REPORT_MISS) ? -ESRCH : -ENETUNREACH;
 
 	rcu_read_unlock();
 
@@ -397,7 +397,7 @@ static inline int fib_lookup(struct net *net, struct flowi4 *flp,
 		err = fib_table_lookup(tb, flp, res, flags);
 
 	if (err == -EAGAIN)
-		err = -ENETUNREACH;
+		err = (flags & FIB_LOOKUP_REPORT_MISS) ? -ESRCH : -ENETUNREACH;
 out:
 	rcu_read_unlock();
 
