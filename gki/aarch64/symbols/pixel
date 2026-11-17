@@ -2579,6 +2579,7 @@
   timer_delete
   timer_delete_sync
   timer_init_key
+  timer_shutdown_sync
   topology_update_hw_pressure
   topup_hyp_memcache
   _totalram_pages
