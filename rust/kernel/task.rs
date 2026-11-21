@@ -224,7 +224,16 @@ impl Task {
     pub fn tgid(&self) -> Pid {
         // SAFETY: The tgid of a task never changes after initialization, so reading this field is
         // not a data race.
-        unsafe { *ptr::addr_of!((*self.as_ptr()).tgid) }
+        unsafe {
+            #[cfg(not(CONFIG_RANDSTRUCT))]
+            {
+                *ptr::addr_of!((*self.as_ptr()).tgid)
+            }
+            #[cfg(CONFIG_RANDSTRUCT)]
+            {
+                *ptr::addr_of!((*self.as_ptr()).__bindgen_anon_1.tgid)
+            }
+        }
     }
 
     /// Returns the UID of the given task.
@@ -301,7 +310,16 @@ impl Task {
         // This uses a volatile read because C code may be modifying this field in parallel using
         // non-atomic unsynchronized writes. This corresponds to how the C macro READ_ONCE is
         // implemented.
-        unsafe { core::ptr::addr_of!((*self.0.get()).policy).read_volatile() }
+        unsafe {
+            #[cfg(not(CONFIG_RANDSTRUCT))]
+            {
+                core::ptr::addr_of!((*self.0.get()).policy).read_volatile()
+            }
+            #[cfg(CONFIG_RANDSTRUCT)]
+            {
+                core::ptr::addr_of!((*self.0.get()).__bindgen_anon_1.policy).read_volatile()
+            }
+        }
     }
 
     /// Returns the current normal priority.
@@ -312,7 +330,16 @@ impl Task {
         // This uses a volatile read because C code may be modifying this field in parallel using
         // non-atomic unsynchronized writes. This corresponds to how the C macro READ_ONCE is
         // implemented.
-        unsafe { core::ptr::addr_of!((*self.0.get()).normal_prio).read_volatile() }
+        unsafe {
+            #[cfg(not(CONFIG_RANDSTRUCT))]
+            {
+                core::ptr::addr_of!((*self.0.get()).normal_prio).read_volatile()
+            }
+            #[cfg(CONFIG_RANDSTRUCT)]
+            {
+                core::ptr::addr_of!((*self.0.get()).__bindgen_anon_1.normal_prio).read_volatile()
+            }
+        }
     }
 
     /// Get the rlimit value for RTPRIO.
@@ -368,7 +395,16 @@ impl Task {
         // This uses a volatile read because C code may be modifying this field in parallel using
         // non-atomic unsynchronized writes. This corresponds to how the C macro READ_ONCE is
         // implemented.
-        let mm = unsafe { core::ptr::addr_of!((*self.as_ptr()).mm).read_volatile() };
+        let mm = unsafe {
+            #[cfg(not(CONFIG_RANDSTRUCT))]
+            {
+                core::ptr::addr_of!((*self.as_ptr()).mm).read_volatile()
+            }
+            #[cfg(CONFIG_RANDSTRUCT)]
+            {
+                core::ptr::addr_of!((*self.as_ptr()).__bindgen_anon_1.mm).read_volatile()
+            }
+        };
         !mm.is_null()
     }
 }
