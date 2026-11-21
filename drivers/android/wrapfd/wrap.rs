@@ -860,9 +860,7 @@ impl DeferredMmapCounter {
         // Task works are not available on kthreads.
         let current = kernel::current!();
 
-        // Check if this is a kthread.
-        // SAFETY: Reading `flags` from a task is always okay.
-        if unsafe { ((*current.as_ptr()).flags & bindings::PF_KTHREAD) != 0 } {
+        if current.is_kthread() {
             return Err(ENOTSUPP);
         }
 
