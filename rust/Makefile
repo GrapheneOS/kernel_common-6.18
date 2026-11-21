@@ -368,6 +368,12 @@ ifdef CONFIG_RANDSTRUCT
 bindgen_layout_flags := --rust-target 1.77
 endif
 
+# Rust integer aliases cannot express the four-byte alignment of compat
+# 64-bit integers on these targets. Preserve their C layout in bindings.
+ifdef CONFIG_COMPAT_FOR_U64_ALIGNMENT
+bindgen_layout_flags += --opaque-type 'compat_[su]64'
+endif
+
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
 	$(BINDGEN) $< $(bindgen_target_flags) $(bindgen_layout_flags) \
