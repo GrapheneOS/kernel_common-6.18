@@ -619,16 +619,7 @@ impl Node {
         let transaction = inner.oneway_todo.pop_front();
         inner.has_oneway_transaction = transaction.is_some();
         if let Some(transaction) = transaction {
-            match guard.push_work(&self.owner, transaction) {
-                Ok(()) => {}
-                Err((_err, work)) => {
-                    // Process is dead.
-                    // This shouldn't happen due to the `is_dead` check, but if it does, just drop
-                    // the transaction and return.
-                    drop(guard);
-                    drop(work);
-                }
-            }
+            guard.queue_work(&self.owner, transaction);
         }
     }
 

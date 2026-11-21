@@ -252,6 +252,15 @@ struct InnerThread {
     /// Determines whether the looper should return.
     looper_need_return: bool,
 
+    /// Set when this thread should recheck the process work queue.
+    ///
+    /// It is set by `Thread::wake_for_process_work`, which is called only for a thread just removed
+    /// from the ready list of the process. A thread with the flag set can therefore no longer be
+    /// handed work, and must check the queue itself before it waits again. The flag is cleared
+    /// before every registration, and is set and checked under this lock, so a request cannot be
+    /// lost between the check and the wait.
+    recheck_process_work: bool,
+
     /// Determines if thread is dead.
     is_dead: bool,
 
@@ -296,6 +305,7 @@ impl InnerThread {
             // A flush can scan the threads before this one is added, so like C Binder, start with a
             // return pending.
             looper_need_return: true,
+            recheck_process_work: false,
             is_dead: false,
             process_work_list: false,
             reply_work: ThreadError::try_new(pid)?,
@@ -636,6 +646,10 @@ impl Thread {
                 return Ok(self.process.get_work());
             }
 
+            // We are about to check the process queue, so consume any earlier request to do so. The
+            // thread is not registered as ready here, so no new request can target it.
+            inner.recheck_process_work = false;
+
             // Note that if the thread list is empty, then the call to `pop_work()` has changed
             // `process_work_list` back to `false` even if we set it to `true` above.
             thread_has_deferred_work = !inner.work_list.is_empty();
@@ -653,7 +667,7 @@ impl Thread {
         }
 
         // Get work from the process queue. If none is available, atomically register as ready.
-        let reg = match self
+        let mut reg = match self
             .process
             .get_work_or_register(self, thread_has_deferred_work)
         {
@@ -665,6 +679,25 @@ impl Thread {
         loop {
             if let Some(work) = inner.pop_work() {
                 return Ok(Some(work));
+            }
+
+            if inner.recheck_process_work {
+                inner.recheck_process_work = false;
+                drop(inner);
+                drop(reg);
+
+                reg = match self
+                    .process
+                    .get_work_or_register(self, thread_has_deferred_work)
+                {
+                    GetWorkOrRegister::Work(work) => return Ok(Some(work)),
+                    GetWorkOrRegister::Register(reg) => {
+                        crate::trace::trace_wait_for_work(true, false, thread_has_deferred_work);
+                        reg
+                    }
+                };
+                inner = self.inner.lock();
+                continue;
             }
 
             // A flush may have asked the thread to return before it started waiting.
@@ -690,7 +723,12 @@ impl Thread {
                 let res = match inner.pop_work() {
                     Some(work) => Ok(Some(work)),
                     None if signal_pending => Err(EINTR),
-                    None => Ok(None),
+                    None => {
+                        // A flush can end a wake for queued process work. Like C Binder, take
+                        // that work instead of leaving it for another reader.
+                        drop(inner);
+                        Ok(self.process.get_work())
+                    }
                 };
                 return res;
             }
@@ -721,6 +759,26 @@ impl Thread {
         }
 
         res
+    }
+
+    /// Wakes this thread so that it rechecks the process work queue.
+    ///
+    /// If the thread has used poll, the poll waiters of the process are notified as well, as
+    /// `ProcessInner::push_work` does when it hands work to such a thread.
+    pub(crate) fn wake_for_process_work(&self) -> bool {
+        let mut inner = self.inner.lock();
+        if inner.is_dead {
+            return false;
+        }
+        inner.recheck_process_work = true;
+        let polling = inner.looper_flags & LOOPER_POLL != 0;
+        drop(inner);
+
+        self.work_condvar.notify_one();
+        if polling {
+            self.process.notify_poll(false);
+        }
+        true
     }
 
     /// Attempts to push to given work item to the thread if it's a looper thread (i.e., if it's
@@ -1845,6 +1903,11 @@ impl Thread {
                     self.process.pid_in_current_ns()
                 );
             }
+            // The read may have taken other work and left process work queued. Like the C driver,
+            // wake another process reader in that case. This also covers a reader woken for queued
+            // work that returns without it, because of a signal, its own thread work or a full
+            // read buffer.
+            self.process.wake_if_work_queued();
         }
 
         // Write the request back so that the consumed fields are visible to the caller.

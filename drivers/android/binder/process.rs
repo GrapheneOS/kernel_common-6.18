@@ -214,6 +214,31 @@ impl ProcessInner {
         }
     }
 
+    /// Wakes one ready thread without assigning queued work to it.
+    ///
+    /// A reader takes older queued work before registering as ready, so waking more than one reader
+    /// for an insertion is unnecessary. Like the C driver, this never uses a synchronous wake,
+    /// because the waking thread does not wait for the reader it wakes.
+    fn wake_queued_work(&mut self, proc: &Process) {
+        while let Some(thread) = self.ready_threads.pop_front() {
+            if thread.wake_for_process_work() {
+                return;
+            }
+        }
+
+        proc.notify_poll(false);
+    }
+
+    /// Puts `work` on the process queue and wakes one ready thread to recheck that queue.
+    ///
+    /// The work stays in queue order until a process reader fetches it. The caller must have
+    /// checked that the process is alive while holding this lock.
+    pub(crate) fn queue_work(&mut self, proc: &Process, work: DLArc<dyn DeliverToRead>) {
+        kernel::warn_on!(self.is_dead);
+        self.work.push_back(work);
+        self.wake_queued_work(proc);
+    }
+
     pub(crate) fn remove_node(&mut self, ptr: u64) {
         self.nodes.remove(&ptr);
     }
@@ -743,6 +768,18 @@ impl Process {
                 Err(EINVAL)
             }
         }
+    }
+
+    /// Wakes a ready thread if work is left on the process queue after a read.
+    ///
+    /// A read can take other work first. The C driver also checked for remaining process work at
+    /// the end of each read and used a nonsynchronous wake there.
+    pub(crate) fn wake_if_work_queued(&self) {
+        let mut inner = self.inner.lock();
+        if inner.work.is_empty() {
+            return;
+        }
+        inner.wake_queued_work(self);
     }
 
     pub(crate) fn push_work(&self, work: DLArc<dyn DeliverToRead>) -> BinderResult {
