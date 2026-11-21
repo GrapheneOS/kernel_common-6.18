@@ -360,10 +360,18 @@ bindgen_c_flags_final = $(bindgen_c_flags_lto) -fno-builtin -D__BINDGEN__
 #
 # Starting with `bindgen` 0.71.0, we will be able to set any future Rust version
 # instead, i.e. we will be able to set here our minimum supported Rust version.
+#
+# With RANDSTRUCT, check Rust field offsets against the C layouts reported
+# by bindgen's libclang. Rust 1.77 supports the const offset_of! checks.
+bindgen_layout_flags := --rust-target 1.68 --no-layout-tests
+ifdef CONFIG_RANDSTRUCT
+bindgen_layout_flags := --rust-target 1.77
+endif
+
 quiet_cmd_bindgen = BINDGEN $@
       cmd_bindgen = \
-	$(BINDGEN) $< $(bindgen_target_flags) --rust-target 1.68 \
-		--use-core --with-derive-default --ctypes-prefix ffi --no-layout-tests \
+	$(BINDGEN) $< $(bindgen_target_flags) $(bindgen_layout_flags) \
+		--use-core --with-derive-default --ctypes-prefix ffi \
 		--no-debug '.*' --enable-function-attribute-detection \
 		-o $@ -- $(bindgen_c_flags_final) -DMODULE \
 		$(bindgen_target_cflags) $(bindgen_target_extra)
