@@ -410,6 +410,22 @@ impl Task {
 }
 
 impl CurrentTask {
+    /// Returns whether the current task is a kernel thread.
+    pub fn is_kthread(&self) -> bool {
+        // SAFETY: The current task can read its own flags.
+        let flags = unsafe {
+            #[cfg(not(CONFIG_RANDSTRUCT))]
+            {
+                (*self.as_ptr()).flags
+            }
+            #[cfg(CONFIG_RANDSTRUCT)]
+            {
+                (*self.as_ptr()).__bindgen_anon_1.flags
+            }
+        };
+        flags & bindings::PF_KTHREAD != 0
+    }
+
     /// Access the address space of the current task.
     ///
     /// This function does not touch the refcount of the mm.

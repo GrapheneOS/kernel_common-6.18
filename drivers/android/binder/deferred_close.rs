@@ -69,20 +69,7 @@ impl DeferredFdCloser {
         // Task works are not available on kthreads.
         let current = kernel::current!();
 
-        // SAFETY: Reading `flags` from a task is always okay.
-        let flags = unsafe {
-            #[cfg(not(CONFIG_RANDSTRUCT))]
-            {
-                (*current.as_ptr()).flags
-            }
-            #[cfg(CONFIG_RANDSTRUCT)]
-            {
-                (*current.as_ptr()).__bindgen_anon_1.flags
-            }
-        };
-
-        // Check if this is a kthread.
-        if (flags & bindings::PF_KTHREAD) != 0 {
+        if current.is_kthread() {
             return Err(DeferredFdCloseError::TaskWorkUnavailable);
         }
 
