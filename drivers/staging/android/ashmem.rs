@@ -62,7 +62,16 @@ use ashmem_toggle::{AshmemToggleExec, AshmemToggleMisc, AshmemToggleRead, Ashmem
 /// Does PROT_READ imply PROT_EXEC for this task?
 fn read_implies_exec(task: &Task) -> bool {
     // SAFETY: Always safe to read.
-    let personality = unsafe { (*task.as_ptr()).personality };
+    let personality = unsafe {
+        #[cfg(not(CONFIG_RANDSTRUCT))]
+        {
+            (*task.as_ptr()).personality
+        }
+        #[cfg(CONFIG_RANDSTRUCT)]
+        {
+            (*task.as_ptr()).__bindgen_anon_1.personality
+        }
+    };
     (personality & bindings::READ_IMPLIES_EXEC) != 0
 }
 
