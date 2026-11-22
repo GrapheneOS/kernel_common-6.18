@@ -627,6 +627,7 @@ impl Thread {
             }
             if inner.looper_need_return {
                 drop(inner);
+                self.restore_priority(&self.process.default_priority);
                 return Ok(self.process.get_work());
             }
 
