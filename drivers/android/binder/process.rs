@@ -1200,7 +1200,7 @@ impl Process {
         self.inner.lock().register_thread()
     }
 
-    fn remove_thread(&self, thread: Arc<Thread>) {
+    fn remove_thread(&self, thread: &Arc<Thread>) {
         self.inner.lock().threads.remove(&thread.id);
         thread.release();
     }
@@ -1685,9 +1685,10 @@ impl Process {
         }
 
         let thread = this.get_current_thread()?;
+        let _clear_need_return = thread.clear_need_return_on_drop();
         match cmd {
             uapi::BINDER_SET_MAX_THREADS => this.set_max_threads(reader.read()?),
-            uapi::BINDER_THREAD_EXIT => this.remove_thread(thread),
+            uapi::BINDER_THREAD_EXIT => this.remove_thread(&thread),
             uapi::BINDER_SET_CONTEXT_MGR => this.set_as_manager(None, &thread)?,
             uapi::BINDER_SET_CONTEXT_MGR_EXT => {
                 this.set_as_manager(Some(reader.read()?), &thread)?
@@ -1711,13 +1712,19 @@ impl Process {
     ) -> Result {
         let blocking = (file.flags() & file::flags::O_NONBLOCK) == 0;
         match cmd {
-            uapi::BINDER_WRITE_READ => this.get_current_thread()?.write_read(data, blocking)?,
+            uapi::BINDER_WRITE_READ => {
+                let thread = this.get_current_thread()?;
+                let _clear_need_return = thread.clear_need_return_on_drop();
+                thread.write_read(data, blocking)?
+            }
             uapi::BINDER_GET_NODE_DEBUG_INFO => this.get_node_debug_info(data)?,
             uapi::BINDER_GET_NODE_INFO_FOR_REF => this.get_node_info_from_ref(data)?,
             uapi::BINDER_VERSION => this.version(data)?,
             uapi::BINDER_GET_FROZEN_INFO => get_frozen_status(data)?,
             uapi::BINDER_GET_EXTENDED_ERROR => {
-                this.get_current_thread()?.get_extended_error(data)?
+                let thread = this.get_current_thread()?;
+                let _clear_need_return = thread.clear_need_return_on_drop();
+                thread.get_extended_error(data)?
             }
             _ => return Err(EINVAL),
         }

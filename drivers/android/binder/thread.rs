@@ -293,7 +293,9 @@ impl InnerThread {
 
         Ok(Self {
             looper_flags: 0,
-            looper_need_return: false,
+            // A flush can scan the threads before this one is added, so like C Binder, start with a
+            // return pending.
+            looper_need_return: true,
             is_dead: false,
             process_work_list: false,
             reply_work: ThreadError::try_new(pid)?,
@@ -569,6 +571,7 @@ impl Thread {
         {
             let mut inner = self.inner.lock();
             if inner.looper_need_return {
+                inner.process_work_list = true;
                 return Ok(inner.pop_work());
             }
         }
@@ -581,8 +584,13 @@ impl Thread {
         // Loop waiting only on the local queue (i.e., not registering with the process queue).
         let mut inner = self.inner.lock();
         loop {
+            // A flush ends this read, before or during the wait, so deferred work is due now.
+            inner.process_work_list |= inner.looper_need_return;
             if let Some(work) = inner.pop_work() {
                 return Ok(Some(work));
+            }
+            if inner.looper_need_return {
+                return Ok(None);
             }
 
             inner.looper_flags |= LOOPER_WAITING;
@@ -591,9 +599,6 @@ impl Thread {
 
             if signal_pending {
                 return Err(EINTR);
-            }
-            if inner.looper_need_return {
-                return Ok(None);
             }
         }
     }
@@ -662,9 +667,13 @@ impl Thread {
                 return Ok(Some(work));
             }
 
-            inner.looper_flags |= LOOPER_WAITING | LOOPER_WAITING_PROC;
-            let signal_pending = self.work_condvar.wait_interruptible_freezable(&mut inner);
-            inner.looper_flags &= !(LOOPER_WAITING | LOOPER_WAITING_PROC);
+            // A flush may have asked the thread to return before it started waiting.
+            let mut signal_pending = false;
+            if !inner.looper_need_return {
+                inner.looper_flags |= LOOPER_WAITING | LOOPER_WAITING_PROC;
+                signal_pending = self.work_condvar.wait_interruptible_freezable(&mut inner);
+                inner.looper_flags &= !(LOOPER_WAITING | LOOPER_WAITING_PROC);
+            }
 
             if signal_pending || inner.looper_need_return {
                 // We need to return now.
@@ -1821,7 +1830,6 @@ impl Thread {
                 );
                 req.read_consumed = 0;
                 writer.write(&req)?;
-                self.inner.lock().looper_need_return = false;
                 return ret;
             }
         }
@@ -1842,8 +1850,6 @@ impl Thread {
         // Write the request back so that the consumed fields are visible to the caller.
         writer.write(&req)?;
 
-        self.inner.lock().looper_need_return = false;
-
         ret
     }
 
@@ -1852,13 +1858,16 @@ impl Thread {
         Ok((inner.should_use_process_work_queue(), inner.poll()))
     }
 
-    /// Make the call to `get_work` or `get_work_local` return immediately, if any.
+    /// Returns a guard that clears `looper_need_return` when it is dropped.
+    pub(crate) fn clear_need_return_on_drop(&self) -> ClearNeedReturn<'_> {
+        ClearNeedReturn(self)
+    }
+
+    /// Make the current or next call to `get_work` or `get_work_local` return immediately.
     pub(crate) fn exit_looper(&self) {
         let mut inner = self.inner.lock();
         let should_notify = inner.looper_flags & LOOPER_WAITING != 0;
-        if should_notify {
-            inner.looper_need_return = true;
-        }
+        inner.looper_need_return = true;
         drop(inner);
 
         if should_notify {
@@ -1880,6 +1889,18 @@ impl Thread {
         while let Some(work) = self.pop_work_even_if_deferred() {
             work.into_arc().cancel();
         }
+    }
+}
+
+/// Clears `looper_need_return` when dropped.
+///
+/// Like C Binder, an ioctl that uses the thread consumes a pending return when it ends, also when
+/// it fails, so that the return does not affect a later read or poll.
+pub(crate) struct ClearNeedReturn<'a>(&'a Thread);
+
+impl Drop for ClearNeedReturn<'_> {
+    fn drop(&mut self) {
+        self.0.inner.lock().looper_need_return = false;
     }
 }
 
