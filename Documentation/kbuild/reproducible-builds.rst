@@ -102,10 +102,15 @@ unreproducible parts can be treated as sources:
 Structure randomisation
 -----------------------
 
-If you enable ``CONFIG_RANDSTRUCT``, you will need to pre-generate
-the random seed in ``scripts/basic/randstruct.seed`` so the same
-value is used by each build. See ``scripts/gen-randstruct-seed.sh``
-for details.
+With ``CONFIG_RANDSTRUCT``, Kbuild derives the seed from the
+``localversion`` string in the kernel output directory. The standard
+Pixel build scripts enable Kleaf stamping, which includes the abbreviated
+kernel commit ID in this string. Unstamped builds with the same
+``localversion`` share a seed across revisions.
+
+If ``localversion`` is missing or empty, Kbuild generates a random seed
+in ``scripts/basic/randstruct.seed``. External modules need the same seed
+as the kernel.
 
 Debug info conflicts
 --------------------
