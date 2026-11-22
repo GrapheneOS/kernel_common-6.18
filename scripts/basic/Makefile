@@ -7,11 +7,12 @@ hostprogs-always-y	+= fixdep
 # randstruct: the seed is needed before building the gcc-plugin or
 # before running a Clang kernel build.
 gen-randstruct-seed	:= $(srctree)/scripts/gen-randstruct-seed.sh
+randstruct-localversion	:= $(call read-file,$(objtree)/localversion)
 quiet_cmd_create_randstruct_seed = GENSEED $@
 cmd_create_randstruct_seed = \
-	KBUILD_BUILD_TIMESTAMP='$(call escsq,$(KBUILD_BUILD_TIMESTAMP))' \
 	$(CONFIG_SHELL) $(gen-randstruct-seed) \
-		$@ $(objtree)/include/generated/randstruct_hash.h
+		$@ $(objtree)/include/generated/randstruct_hash.h \
+		'$(call escsq,$(randstruct-localversion))'
 $(obj)/randstruct.seed: $(gen-randstruct-seed) FORCE
 	$(call if_changed,create_randstruct_seed)
 always-$(CONFIG_RANDSTRUCT) += randstruct.seed
