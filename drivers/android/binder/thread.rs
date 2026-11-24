@@ -684,12 +684,9 @@ impl Thread {
             if inner.recheck_process_work {
                 inner.recheck_process_work = false;
                 drop(inner);
-                drop(reg);
 
-                reg = match self
-                    .process
-                    .get_work_or_register(self, thread_has_deferred_work)
-                {
+                // The waker took this thread off the ready list, so `reg` has nothing to remove.
+                reg = match reg.recheck_process_work(thread_has_deferred_work) {
                     GetWorkOrRegister::Work(work) => return Ok(Some(work)),
                     GetWorkOrRegister::Register(reg) => {
                         crate::trace::trace_wait_for_work(true, false, thread_has_deferred_work);

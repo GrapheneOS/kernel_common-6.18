@@ -1888,7 +1888,8 @@ impl Process {
 ///
 /// The destructor of this type will unregister the thread from the list of ready threads.
 pub(crate) struct Registration<'a> {
-    thread: &'a Arc<Thread>,
+    /// `None` once `recheck_process_work` has dismissed the registration.
+    thread: Option<&'a Arc<Thread>>,
 }
 
 impl<'a> Registration<'a> {
@@ -1903,17 +1904,41 @@ impl<'a> Registration<'a> {
             // question will sleep forever.
             pr_err_ratelimited!("Same thread registered with `ready_threads` twice.\n");
         }
-        Self { thread }
+        Self {
+            thread: Some(thread),
+        }
+    }
+
+    /// Checks the process queue again for a thread that was woken to do so, and registers the
+    /// thread as ready again if the queue has no work for it.
+    ///
+    /// The thread must have seen its `recheck_process_work` flag set. That flag is set only for a
+    /// thread that its waker has just taken off the ready list, so this registration has nothing
+    /// left to remove, and dropping it would take the process lock only to find that out.
+    pub(crate) fn recheck_process_work(
+        mut self,
+        thread_has_deferred_work: bool,
+    ) -> GetWorkOrRegister<'a> {
+        // Dismiss the registration. This is not visible to callers because this function
+        // consumes `self`.
+        let thread = self.thread.take().unwrap();
+        thread
+            .process
+            .get_work_or_register(thread, thread_has_deferred_work)
     }
 }
 
 impl Drop for Registration<'_> {
     fn drop(&mut self) {
-        let mut inner = self.thread.process.inner.lock();
+        let Some(thread) = self.thread else {
+            return;
+        };
+
+        let mut inner = thread.process.inner.lock();
         // SAFETY: The thread has the invariant that we never push it to any other linked list than
         // the `ready_threads` list of its parent process. Therefore, the thread is either in that
         // list, or in no list.
-        unsafe { inner.ready_threads.remove(self.thread) };
+        unsafe { inner.ready_threads.remove(thread) };
     }
 }
 
