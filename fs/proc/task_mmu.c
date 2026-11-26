@@ -1601,7 +1601,7 @@ static int show_smaps_rollup(struct seq_file *m, void *v)
 	if (ret)
 		goto out_rel_mpol;
 
-	vma_iter_init(&priv->iter, mm, 0);
+	vma_rcu_iter_init(&priv->rvmi, mm, &priv->iter, 0);
 	vma = proc_get_vma(m, &pos);
 	if (unlikely(!vma))
 		goto empty_set;
@@ -1650,7 +1650,7 @@ static int show_smaps_rollup(struct seq_file *m, void *v)
 				goto out_rel_mpol;
 			/* Resume from the last position. */
 			pos = last_vma_end;
-			vma_iter_init(&priv->iter, mm, pos);
+			vma_rcu_iter_init(&priv->rvmi, mm, &priv->iter, pos);
 		}
 		vma = proc_get_vma(m, &pos);
 	}
