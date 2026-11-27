@@ -214,6 +214,31 @@ impl ProcessInner {
         }
     }
 
+    /// Wakes one ready thread without assigning queued work to it.
+    ///
+    /// A reader takes older queued work before registering as ready, so waking more than one reader
+    /// for an insertion is unnecessary. Like the C driver, this never uses a synchronous wake,
+    /// because the waking thread does not wait for the reader it wakes.
+    fn wake_queued_work(&mut self, proc: &Process) {
+        while let Some(thread) = self.ready_threads.pop_front() {
+            if thread.wake_for_process_work() {
+                return;
+            }
+        }
+
+        proc.notify_poll(false);
+    }
+
+    /// Puts `work` on the process queue and wakes one ready thread to recheck that queue.
+    ///
+    /// The work stays in queue order until a process reader fetches it. The caller must have
+    /// checked that the process is alive while holding this lock.
+    pub(crate) fn queue_work(&mut self, proc: &Process, work: DLArc<dyn DeliverToRead>) {
+        kernel::warn_on!(self.is_dead);
+        self.work.push_back(work);
+        self.wake_queued_work(proc);
+    }
+
     pub(crate) fn remove_node(&mut self, ptr: u64) {
         self.nodes.remove(&ptr);
     }
@@ -745,6 +770,18 @@ impl Process {
         }
     }
 
+    /// Wakes a ready thread if work is left on the process queue after a read.
+    ///
+    /// A read can take other work first. The C driver also checked for remaining process work at
+    /// the end of each read and used a nonsynchronous wake there.
+    pub(crate) fn wake_if_work_queued(&self) {
+        let mut inner = self.inner.lock();
+        if inner.work.is_empty() {
+            return;
+        }
+        inner.wake_queued_work(self);
+    }
+
     pub(crate) fn push_work(&self, work: DLArc<dyn DeliverToRead>) -> BinderResult {
         // If push_work fails, drop the work item outside the lock.
         let res = self.inner.lock().push_work(self, work);
@@ -1200,7 +1237,7 @@ impl Process {
         self.inner.lock().register_thread()
     }
 
-    fn remove_thread(&self, thread: Arc<Thread>) {
+    fn remove_thread(&self, thread: &Arc<Thread>) {
         self.inner.lock().threads.remove(&thread.id);
         thread.release();
     }
@@ -1685,9 +1722,10 @@ impl Process {
         }
 
         let thread = this.get_current_thread()?;
+        let _clear_need_return = thread.clear_need_return_on_drop();
         match cmd {
             uapi::BINDER_SET_MAX_THREADS => this.set_max_threads(reader.read()?),
-            uapi::BINDER_THREAD_EXIT => this.remove_thread(thread),
+            uapi::BINDER_THREAD_EXIT => this.remove_thread(&thread),
             uapi::BINDER_SET_CONTEXT_MGR => this.set_as_manager(None, &thread)?,
             uapi::BINDER_SET_CONTEXT_MGR_EXT => {
                 this.set_as_manager(Some(reader.read()?), &thread)?
@@ -1711,13 +1749,19 @@ impl Process {
     ) -> Result {
         let blocking = (file.flags() & file::flags::O_NONBLOCK) == 0;
         match cmd {
-            uapi::BINDER_WRITE_READ => this.get_current_thread()?.write_read(data, blocking)?,
+            uapi::BINDER_WRITE_READ => {
+                let thread = this.get_current_thread()?;
+                let _clear_need_return = thread.clear_need_return_on_drop();
+                thread.write_read(data, blocking)?
+            }
             uapi::BINDER_GET_NODE_DEBUG_INFO => this.get_node_debug_info(data)?,
             uapi::BINDER_GET_NODE_INFO_FOR_REF => this.get_node_info_from_ref(data)?,
             uapi::BINDER_VERSION => this.version(data)?,
             uapi::BINDER_GET_FROZEN_INFO => get_frozen_status(data)?,
             uapi::BINDER_GET_EXTENDED_ERROR => {
-                this.get_current_thread()?.get_extended_error(data)?
+                let thread = this.get_current_thread()?;
+                let _clear_need_return = thread.clear_need_return_on_drop();
+                thread.get_extended_error(data)?
             }
             _ => return Err(EINVAL),
         }
@@ -1844,7 +1888,8 @@ impl Process {
 ///
 /// The destructor of this type will unregister the thread from the list of ready threads.
 pub(crate) struct Registration<'a> {
-    thread: &'a Arc<Thread>,
+    /// `None` once `recheck_process_work` has dismissed the registration.
+    thread: Option<&'a Arc<Thread>>,
 }
 
 impl<'a> Registration<'a> {
@@ -1859,17 +1904,41 @@ impl<'a> Registration<'a> {
             // question will sleep forever.
             pr_err_ratelimited!("Same thread registered with `ready_threads` twice.\n");
         }
-        Self { thread }
+        Self {
+            thread: Some(thread),
+        }
+    }
+
+    /// Checks the process queue again for a thread that was woken to do so, and registers the
+    /// thread as ready again if the queue has no work for it.
+    ///
+    /// The thread must have seen its `recheck_process_work` flag set. That flag is set only for a
+    /// thread that its waker has just taken off the ready list, so this registration has nothing
+    /// left to remove, and dropping it would take the process lock only to find that out.
+    pub(crate) fn recheck_process_work(
+        mut self,
+        thread_has_deferred_work: bool,
+    ) -> GetWorkOrRegister<'a> {
+        // Dismiss the registration. This is not visible to callers because this function
+        // consumes `self`.
+        let thread = self.thread.take().unwrap();
+        thread
+            .process
+            .get_work_or_register(thread, thread_has_deferred_work)
     }
 }
 
 impl Drop for Registration<'_> {
     fn drop(&mut self) {
-        let mut inner = self.thread.process.inner.lock();
+        let Some(thread) = self.thread else {
+            return;
+        };
+
+        let mut inner = thread.process.inner.lock();
         // SAFETY: The thread has the invariant that we never push it to any other linked list than
         // the `ready_threads` list of its parent process. Therefore, the thread is either in that
         // list, or in no list.
-        unsafe { inner.ready_threads.remove(self.thread) };
+        unsafe { inner.ready_threads.remove(thread) };
     }
 }
 

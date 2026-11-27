@@ -358,7 +358,6 @@ impl Transaction {
                 pr_warn_ratelimited!("Oneway transaction should not be in a transaction stack.\n");
                 return Err(EINVAL.into());
             }
-            alloc.set_info_oneway_node(node_ref.node.clone());
         }
         if info.flags & TF_CLEAR_BUF != 0 {
             alloc.set_info_clear_on_drop();
@@ -561,6 +560,11 @@ impl Transaction {
                             _t_outdated = t_outdated;
                         }
                     }
+                }
+                // Only a submitted transaction holds or waits for the node's oneway slot, so only
+                // its buffer may release the next oneway transaction when it is freed.
+                if let Some(alloc) = self.allocation.lock().as_mut() {
+                    alloc.set_info_oneway_node(target_node.clone());
                 }
                 match target_node.submit_oneway(self, &mut process_inner) {
                     Ok(()) => {}
